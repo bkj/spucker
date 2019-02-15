@@ -4,19 +4,66 @@
 
 mkdir -p results
 
-python main.py --dataset data/FB15k-237 | tee results/.jl
-# {"epoch": 499, "train_loss": 0.0005535096377437062, "mrr": 0.36017325820962404, "h_at_10": 0.5436270316509837, "h_at_03": 0.3925292272597662, "h_at_01": 0.2696036498431708}
+# --
+# FB15k
 
 python main.py \
     --dataset data/FB15k \
-    --lr 0.003 | tee results/FB15k.jl
+    --lr 0.003 \
+    --lr-decay 0.99 \
+    --ent-emb-dim 200 \
+    --rel-emb-dim 200 \
+    --sub-drop 0.2 \
+    --hidden-drop1 0.2 \
+    --hidden-drop2 0.3 \
+    --label-smoothing 0.0 | tee results/FB15k.jl
+
+
+# --
+# WN18
 
 python main.py \
     --dataset data/WN18 \
-    --dr 30 \
-    --lr 0.005 | tee results/WN18.jl
+    --lr 0.005 \
+    --lr-decay 0.995 \
+    --ent-emb-dim 200 \
+    --rel-emb-dim 30 \
+    --sub-drop 0.2 \
+    --hidden-drop1 0.1 \
+    --hidden-drop2 0.2 \
+    --label-smoothing 0.1 | tee results/WN18.jl
+
+
+# # --
+# # FB15k-237
+
+# python main.py \
+#     --dataset data/FB15k-237 \
+#     --lr 0.0005 \
+#     --lr-decay 1.0 \
+#     --ent-emb-dim 200 \
+#     --rel-emb-dim 200 \
+#     --sub-drop 0.3 \
+#     --hidden-drop1 0.4 \
+#     --hidden-drop2 0.5 \
+#     --label-smoothing 0.1 | tee results/FB15k-237.jl
+
+
+# --
+# WN18RR
 
 python main.py \
     --dataset data/WN18RR \
-    --dr 30 \
-    --lr 0.01 | tee results/WN18RR.jl
+    --lr 0.01 \
+    --lr-decay 1.0 \
+    --ent-emb-dim 200 \
+    --rel-emb-dim 30 \
+    --sub-drop 0.2 \
+    --hidden-drop1 0.2 \
+    --hidden-drop2 0.3 \
+    --label-smoothing 0.1 | tee results/WN18RR.jl
+
+
+
+
+

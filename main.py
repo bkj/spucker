@@ -12,6 +12,7 @@ from tqdm import tqdm
 from collections import defaultdict
 
 import torch
+from torch.optim.lr_scheduler import ExponentialLR
 
 from spucker.helpers import load_dataset
 from spucker.spucker import SpuckerModel, AdjList
@@ -20,20 +21,27 @@ from spucker.spucker import SpuckerModel, AdjList
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset",         type=str,   default="data/FB15k-237")
-    parser.add_argument("--epochs",          type=int,   default=50)
+    parser.add_argument("--epochs",          type=int,   default=500)
     parser.add_argument("--batch_size",      type=int,   default=128)
     parser.add_argument("--lr",              type=float, default=0.0005)
-    parser.add_argument("--dr",              type=float, default=1.0)
-    parser.add_argument("--edim",            type=int,   default=200)
-    parser.add_argument("--rdim",            type=int,   default=200)
-    parser.add_argument("--sub_drop",        type=float, default=0.3)
-    parser.add_argument("--hidden_drop1",    type=float, default=0.4)
-    parser.add_argument("--hidden_drop2",    type=float, default=0.5)
-    # parser.add_argument("--label_smoothing", type=float, default=0.1)
+    
+    parser.add_argument("--ent-emb-dim",     type=int,   default=200)
+    parser.add_argument("--rel-emb-dim",     type=int,   default=200)
+    parser.add_argument("--sub-drop",        type=float, default=0.3)
+    parser.add_argument("--hidden-drop1",    type=float, default=0.4)
+    parser.add_argument("--hidden-drop2",    type=float, default=0.5)
+    
+    parser.add_argument("--lr-decay",        type=float, default=1.0)
+    parser.add_argument("--label-smoothing", type=float, default=0.1)
     
     parser.add_argument("--seed", type=int, default=123)
     
-    return parser.parse_args()
+    args = parser.parse_args()
+    
+    if args.label_smoothing is not None:
+        print('--label-smoothing not implemented', file=sys.stderr)
+    
+    return args
 
 # --
 # Run
@@ -62,8 +70,8 @@ all_adjlist   = AdjList(train_data_idxs + valid_data_idxs + test_data_idxs)
 model = SpuckerModel(
     num_entities=len(entity_lookup),
     num_relations=len(relation_lookup),
-    ent_emb_dim=args.edim,
-    rel_emb_dim=args.rdim,
+    ent_emb_dim=args.ent_emb_dim,
+    rel_emb_dim=args.rel_emb_dim,
     sub_drop=args.sub_drop,
     hidden_drop1=args.hidden_drop1,
     hidden_drop2=args.hidden_drop2,
@@ -71,7 +79,8 @@ model = SpuckerModel(
 print(model, file=sys.stderr)
 model = model.cuda()
 
-opt = torch.optim.Adam(model.parameters(), lr=args.lr)
+opt          = torch.optim.Adam(model.parameters(), lr=args.lr)
+lr_scheduler = ExponentialLR(opt, args.lr_decay)
 
 for epoch in range(args.epochs):
     
@@ -129,6 +138,8 @@ for epoch in range(args.epochs):
         
         ranks = (target_pred.view(-1, 1) < pred[y_i]).sum(dim=-1)
         all_ranks.append(ranks.cpu().numpy())
+    
+    lr_scheduler.step()
     
     all_ranks = np.hstack(all_ranks)
     
