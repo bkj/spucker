@@ -140,4 +140,5 @@ for epoch in range(args.epochs):
         "h_at_03"    : float(np.mean(all_ranks < 3)),
         "h_at_01"    : float(np.mean(all_ranks < 1)),
     }))
+    sys.stdout.flush()
 
