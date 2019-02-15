@@ -2,4 +2,4 @@
 
 # run.sh
 
-CUDA_VISIBLE_DEVICES=1 python main.py
+CUDA_VISIBLE_DEVICES=1 python main.py | tee results.jl

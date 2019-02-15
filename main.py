@@ -13,8 +13,8 @@ from collections import defaultdict
 
 import torch
 
-from helpers import load_dataset
-from spucker import SpuckerModel, AdjList
+from spucker.helpers import load_dataset
+from spucker.spucker import SpuckerModel, AdjList
 
 
 def parse_args():
@@ -46,6 +46,7 @@ _ = torch.cuda.manual_seed(args.seed + 222)
 # --
 # IO
 
+print('loading %s' % args.dataset, file=sys.stderr)
 train_data_idxs, valid_data_idxs, test_data_idxs, entity_lookup, relation_lookup =\
     load_dataset(args.dataset)
 
