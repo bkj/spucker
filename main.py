@@ -114,32 +114,30 @@ for epoch in range(args.epochs):
     # Eval
     
     _ = model.eval()
-    
-    idxs   = np.arange(len(valid_adjlist))
-    chunks = np.array_split(idxs, idxs.shape[0] // args.batch_size)
-    
-    all_ranks = []
-    for chunk in chunks:
-        xb, yb = valid_adjlist.get_batch_by_idx(chunk)
-        x_s = torch.LongTensor(xb['s']).cuda()
-        x_p = torch.LongTensor(xb['p']).cuda()
-        y_i = torch.LongTensor(yb['i']).cuda()
-        y_j = torch.LongTensor(yb['j']).cuda()
+    with torch.no_grad():
+        idxs   = np.arange(len(valid_adjlist))
+        chunks = np.array_split(idxs, idxs.shape[0] // args.batch_size)
         
-        pred = model(x_s, x_p)
-        pred = torch.sigmoid(pred)
-        target_pred = pred[(y_i, y_j)]
-        
-        # Zero all actual edges
-        _, ayb = all_adjlist.get_batch_by_keys(zip(xb['s'], xb['p']))
-        ay_i   = torch.LongTensor(ayb['i']).cuda()
-        ay_j   = torch.LongTensor(ayb['j']).cuda()
-        pred[(ay_i, ay_j)] = 0
-        
-        ranks = (target_pred.view(-1, 1) < pred[y_i]).sum(dim=-1)
-        all_ranks.append(ranks.cpu().numpy())
-    
-    lr_scheduler.step()
+        all_ranks = []
+        for chunk in chunks:
+            xb, yb = valid_adjlist.get_batch_by_idx(chunk)
+            x_s = torch.LongTensor(xb['s']).cuda()
+            x_p = torch.LongTensor(xb['p']).cuda()
+            y_i = torch.LongTensor(yb['i']).cuda()
+            y_j = torch.LongTensor(yb['j']).cuda()
+            
+            pred = model(x_s, x_p)
+            pred = torch.sigmoid(pred)
+            target_pred = pred[(y_i, y_j)]
+            
+            # Zero all actual edges
+            _, ayb = all_adjlist.get_batch_by_keys(zip(xb['s'], xb['p']))
+            ay_i   = torch.LongTensor(ayb['i']).cuda()
+            ay_j   = torch.LongTensor(ayb['j']).cuda()
+            pred[(ay_i, ay_j)] = 0
+            
+            ranks = (target_pred.view(-1, 1) < pred[y_i]).sum(dim=-1)
+            all_ranks.append(ranks.cpu().numpy())
     
     all_ranks = np.hstack(all_ranks)
     
@@ -152,4 +150,6 @@ for epoch in range(args.epochs):
         "h_at_01"    : float(np.mean(all_ranks < 1)),
     }))
     sys.stdout.flush()
+    
+    lr_scheduler.step()
 

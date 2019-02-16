@@ -34,19 +34,19 @@ python main.py \
     --label-smoothing 0.1 | tee results/WN18.jl
 
 
-# # --
-# # FB15k-237
+# --
+# FB15k-237
 
-# python main.py \
-#     --dataset data/FB15k-237 \
-#     --lr 0.0005 \
-#     --lr-decay 1.0 \
-#     --ent-emb-dim 200 \
-#     --rel-emb-dim 200 \
-#     --sub-drop 0.3 \
-#     --hidden-drop1 0.4 \
-#     --hidden-drop2 0.5 \
-#     --label-smoothing 0.1 | tee results/FB15k-237.jl
+python main.py \
+    --dataset data/FB15k-237 \
+    --lr 0.0005 \
+    --lr-decay 1.0 \
+    --ent-emb-dim 200 \
+    --rel-emb-dim 200 \
+    --sub-drop 0.3 \
+    --hidden-drop1 0.4 \
+    --hidden-drop2 0.5 \
+    --label-smoothing 0.1 | tee results/FB15k-237.jl
 
 
 # --
