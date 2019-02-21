@@ -17,6 +17,38 @@ from torch.optim.lr_scheduler import ExponentialLR
 from spucker.helpers import load_dataset
 from spucker.spucker import SpuckerModel, AdjList
 
+# --
+# Helpers
+
+def evaluate(model, adjlist, all_adjlist, batch_size):
+    _ = model.eval()
+    with torch.no_grad():
+        idxs   = np.arange(len(adjlist))
+        chunks = np.array_split(idxs, idxs.shape[0] // batch_size)
+        
+        all_ranks = []
+        for chunk in chunks:
+            xb, yb = adjlist.get_batch_by_idx(chunk)
+            x_s = torch.LongTensor(xb['s']).cuda()
+            x_p = torch.LongTensor(xb['p']).cuda()
+            y_i = torch.LongTensor(yb['i']).cuda()
+            y_j = torch.LongTensor(yb['j']).cuda()
+            
+            pred = model(x_s, x_p)
+            pred = torch.sigmoid(pred)
+            target_pred = pred[(y_i, y_j)]
+            
+            # Zero all actual edges
+            _, ayb = all_adjlist.get_batch_by_keys(zip(xb['s'], xb['p']))
+            ay_i   = torch.LongTensor(ayb['i']).cuda()
+            ay_j   = torch.LongTensor(ayb['j']).cuda()
+            pred[(ay_i, ay_j)] = 0
+            
+            ranks = (target_pred.view(-1, 1) < pred[y_i]).sum(dim=-1)
+            all_ranks.append(ranks.cpu().numpy())
+    
+    return np.hstack(all_ranks)
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -113,43 +145,29 @@ for epoch in range(args.epochs):
     # --
     # Eval
     
-    _ = model.eval()
-    with torch.no_grad():
-        idxs   = np.arange(len(valid_adjlist))
-        chunks = np.array_split(idxs, idxs.shape[0] // args.batch_size)
-        
-        all_ranks = []
-        for chunk in chunks:
-            xb, yb = valid_adjlist.get_batch_by_idx(chunk)
-            x_s = torch.LongTensor(xb['s']).cuda()
-            x_p = torch.LongTensor(xb['p']).cuda()
-            y_i = torch.LongTensor(yb['i']).cuda()
-            y_j = torch.LongTensor(yb['j']).cuda()
-            
-            pred = model(x_s, x_p)
-            pred = torch.sigmoid(pred)
-            target_pred = pred[(y_i, y_j)]
-            
-            # Zero all actual edges
-            _, ayb = all_adjlist.get_batch_by_keys(zip(xb['s'], xb['p']))
-            ay_i   = torch.LongTensor(ayb['i']).cuda()
-            ay_j   = torch.LongTensor(ayb['j']).cuda()
-            pred[(ay_i, ay_j)] = 0
-            
-            ranks = (target_pred.view(-1, 1) < pred[y_i]).sum(dim=-1)
-            all_ranks.append(ranks.cpu().numpy())
-    
-    all_ranks = np.hstack(all_ranks)
-    
+    valid_ranks = evaluate(model, valid_adjlist, all_adjlist, batch_size=args.batch_size)
     print(json.dumps({
+        "mode"       : 'valid',
         "epoch"      : int(epoch),
         "train_loss" : float(np.mean(train_loss)),
-        "mrr"        : float(np.mean(1 / (1 + all_ranks))),
-        "h_at_10"    : float(np.mean(all_ranks < 10)),
-        "h_at_03"    : float(np.mean(all_ranks < 3)),
-        "h_at_01"    : float(np.mean(all_ranks < 1)),
+        "mrr"        : float(np.mean(1 / (1 + valid_ranks))),
+        "h_at_10"    : float(np.mean(valid_ranks < 10)),
+        "h_at_03"    : float(np.mean(valid_ranks < 3)),
+        "h_at_01"    : float(np.mean(valid_ranks < 1)),
     }))
     sys.stdout.flush()
     
+    if (not epoch % 10) or (epoch == args.epochs - 1):
+        test_ranks  = evaluate(model, test_adjlist,  all_adjlist, batch_size=args.batch_size)
+        print(json.dumps({
+            "mode"       : 'test',
+            "epoch"      : int(epoch),
+            "train_loss" : float(np.mean(train_loss)),
+            "mrr"        : float(np.mean(1 / (1 + test_ranks))),
+            "h_at_10"    : float(np.mean(test_ranks < 10)),
+            "h_at_03"    : float(np.mean(test_ranks < 3)),
+            "h_at_01"    : float(np.mean(test_ranks < 1)),
+        }))
+    
+    sys.stdout.flush()
     lr_scheduler.step()
-
