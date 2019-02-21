@@ -52,19 +52,39 @@ class AdjList:
         return xb, yb
 
 
+# def sparse_bce_with_logits(x, i, j):
+#     # !! Add support for label smoothing
+#     t1 = x.clamp(min=0).mean()
+#     t2 = x[(i, j)].sum() / x.numel()
+#     t3 = torch.log(1 + torch.exp(-torch.abs(x))).mean()
+#     return t1 - t2 + t3
 
-def sparse_bce_with_logits(x, i, j):
-    # !! Add support for label smoothing
-    t1 = x.clamp(min=0).mean()
-    t2 = - x[(i, j)].sum() / x.numel()
-    t3 = torch.log(1 + torch.exp(-torch.abs(x))).mean()
+def make_sparse_bce_with_logits(label_smoothing):
+    if label_smoothing == 0:
+        def f(x, i, j):
+            t1 = x.clamp(min=0).mean()
+            
+            t2 = x[(i, j)].sum() / x.numel()
+            
+            t3 = torch.log(1 + torch.exp(-torch.abs(x))).mean()
+            return t1 - t2 + t3
+    else:
+        def f(x, i, j):
+            t1 = x.clamp(min=0).mean()
+            
+            t2 = x[(i, j)].sum() / x.numel()
+            t2 = t2 * (1.0 - label_smoothing)
+            t2 = t2 + (x / x.shape[1]).mean()
+            
+            t3 = torch.log(1 + torch.exp(-torch.abs(x))).mean()
+            return t1 - t2 + t3
     
-    return t1 + t2 + t3
+    return f
 
 
 class SpuckerModel(nn.Module):
     def __init__(self, num_entities, num_relations, ent_emb_dim, rel_emb_dim,
-        sub_drop, hidden_drop1, hidden_drop2):
+        sub_drop, hidden_drop1, hidden_drop2, label_smoothing=0):
         super().__init__()
         
         self.ent_emb_dim = ent_emb_dim
@@ -84,14 +104,14 @@ class SpuckerModel(nn.Module):
             )
         )
         
-        self.sub_drop      = torch.nn.Dropout(sub_drop)
-        self.hidden_drop1  = torch.nn.Dropout(hidden_drop1)
-        self.hidden_drop2  = torch.nn.Dropout(hidden_drop2)
+        self.sub_drop     = torch.nn.Dropout(sub_drop)
+        self.hidden_drop1 = torch.nn.Dropout(hidden_drop1)
+        self.hidden_drop2 = torch.nn.Dropout(hidden_drop2)
         
-        self.bn_sub     = torch.nn.BatchNorm1d(ent_emb_dim)
-        self.bn_hidden  = torch.nn.BatchNorm1d(ent_emb_dim)
+        self.bn_sub    = torch.nn.BatchNorm1d(ent_emb_dim)
+        self.bn_hidden = torch.nn.BatchNorm1d(ent_emb_dim)
         
-        self.loss_fn = sparse_bce_with_logits
+        self.loss_fn = make_sparse_bce_with_logits(label_smoothing=label_smoothing)
     
     def forward(self, s, r):
         # !! Where should the batchnorms be?

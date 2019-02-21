@@ -62,18 +62,13 @@ def parse_args():
     parser.add_argument("--sub-drop",        type=float, default=0.3)
     parser.add_argument("--hidden-drop1",    type=float, default=0.4)
     parser.add_argument("--hidden-drop2",    type=float, default=0.5)
-    
+
     parser.add_argument("--lr-decay",        type=float, default=1.0)
     parser.add_argument("--label-smoothing", type=float, default=0.1)
     
     parser.add_argument("--seed", type=int, default=123)
     
-    args = parser.parse_args()
-    
-    if args.label_smoothing is not None:
-        print('--label-smoothing not implemented', file=sys.stderr)
-    
-    return args
+    return parser.parse_args()
 
 # --
 # Run
@@ -107,6 +102,7 @@ model = SpuckerModel(
     sub_drop=args.sub_drop,
     hidden_drop1=args.hidden_drop1,
     hidden_drop2=args.hidden_drop2,
+    label_smoothing=args.label_smoothing,
 )
 print(model, file=sys.stderr)
 model = model.cuda()
