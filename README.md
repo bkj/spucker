@@ -7,7 +7,6 @@ This is a from-scratch reimplementation of [TuckER](https://github.com/ibalazevi
  - more efficient validation phase
  - use `BCEWithLogitsLoss(x, y)` instead of `BCELoss(torch.sigmoid(x), y))` to improve numerical stability
  - don't materialize dense target matrix
- - no label smoothing (yet)
 
 #### Usage
 
