@@ -9,6 +9,7 @@ import json
 import argparse
 import numpy as np
 from tqdm import tqdm
+from time import time
 from collections import defaultdict
 
 import torch
@@ -110,6 +111,7 @@ model = model.cuda()
 opt          = torch.optim.Adam(model.parameters(), lr=args.lr)
 lr_scheduler = ExponentialLR(opt, args.lr_decay)
 
+t = time()
 for epoch in range(args.epochs):
     
     # --
@@ -150,6 +152,7 @@ for epoch in range(args.epochs):
         "h_at_10"    : float(np.mean(valid_ranks < 10)),
         "h_at_03"    : float(np.mean(valid_ranks < 3)),
         "h_at_01"    : float(np.mean(valid_ranks < 1)),
+        "elapsed"    : time() - t,
     }))
     sys.stdout.flush()
     
@@ -163,6 +166,7 @@ for epoch in range(args.epochs):
             "h_at_10"    : float(np.mean(test_ranks < 10)),
             "h_at_03"    : float(np.mean(test_ranks < 3)),
             "h_at_01"    : float(np.mean(test_ranks < 1)),
+            "elapsed"    : time() - t,
         }))
     
     sys.stdout.flush()
