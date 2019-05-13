@@ -54,7 +54,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset",         type=str,   default="data/FB15k-237")
     parser.add_argument("--epochs",          type=int,   default=500)
-    parser.add_argument("--batch_size",      type=int,   default=128)
+    parser.add_argument("--batch-size",      type=int,   default=128)
     parser.add_argument("--lr",              type=float, default=0.0005)
     
     parser.add_argument("--ent-emb-dim",     type=int,   default=200)

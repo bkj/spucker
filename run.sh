@@ -60,7 +60,7 @@ CUDA_VISIBLE_DEVICES=6 python main.py \
     --sub-drop 0.2 \
     --hidden-drop1 0.2 \
     --hidden-drop2 0.3 \
-    --label-smoothing 0.1 | tee results/WN18RR-smooth.jl
+    --label-smoothing 0.1 | tee results/WN18RR.jl
 
 
 
